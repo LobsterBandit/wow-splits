@@ -3,8 +3,10 @@
   "image": "lobsterbandit/dev-golang",
   "extensions": ["golang.go", "mhutchie.git-graph"],
   "shutdownAction": "none",
+  "workspaceFolder": "/workspaces/wow-splits",
+  "workspaceMount": "source=/home/lobsterbandit/wow-splits,target=/workspaces/wow-splits,type=bind,consistency=cached",
   "mounts": [
-    "source=/home/lobsterbandit/World of Warcraft,target=/World of Warcraft,type=bind,readonly",
+    "source=/home/lobsterbandit/World of Warcraft,target=/World of Warcraft,type=bind,readonly,consistency=cached",
     "source=vscode-wow-splits-aggregator,target=/home/vscode/.vscode-server/extensions,type=volume",
     "source=vscode-insiders-wow-splits-aggregator,target=/home/vscode/.vscode-server-insiders/extensions,type=volume"
   ],
