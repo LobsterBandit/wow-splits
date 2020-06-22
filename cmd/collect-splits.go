@@ -9,7 +9,14 @@ import (
 func main() {
 	aggregator.HelloAggregator()
 
-	files := aggregator.FindAllSpeedrunSplits("/World of Warcraft")
+	filePaths := aggregator.FindAllSpeedrunSplits("/World of Warcraft")
 
-	fmt.Printf("Files found: %v\n", files)
+	for i, file := range filePaths {
+		data, err := aggregator.ReadSpeedrunSplits(file)
+		if err != nil {
+			fmt.Printf("\nerror reading %q: %v", file, err)
+		}
+
+		fmt.Printf("\n%v: %s", i, data)
+	}
 }

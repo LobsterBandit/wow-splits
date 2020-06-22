@@ -2,6 +2,7 @@ package aggregator
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 )
@@ -21,17 +22,29 @@ func FindAllSpeedrunSplits(wowDir string) (files []string) {
 		}
 
 		if info.Name() == SpeedrunSplitsFile {
-			fmt.Printf("found %q at %q\n", info.Name(), path)
+			fmt.Printf("\nfound %q at %q", info.Name(), path)
 			files = append(files, path)
 		}
 
 		return nil
 	})
 	if err != nil {
-		fmt.Printf("error walking the path %q: %v\n", wowDir, err)
+		fmt.Printf("\nerror walking the path %q: %v", wowDir, err)
 
 		return files
 	}
 
 	return files
+}
+
+func ReadSpeedrunSplits(path string) (data string, err error) {
+	fmt.Printf("\nReading file at %q", path)
+
+	content, err := ioutil.ReadFile(path)
+	if err != nil {
+		fmt.Printf("\nerror reading %q: %v", path, err)
+		return "", err
+	}
+
+	return string(content), nil
 }
