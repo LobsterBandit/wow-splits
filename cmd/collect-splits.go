@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/lobsterbandit/wow-splits/aggregator"
@@ -12,11 +13,13 @@ func main() {
 	filePaths := aggregator.FindAllSpeedrunSplits("/World of Warcraft")
 
 	for i, file := range filePaths {
-		data, err := aggregator.ReadSpeedrunSplits(file)
+		data, err := aggregator.ParseCharacter(file)
 		if err != nil {
 			fmt.Printf("\nerror reading %q: %v", file, err)
 		}
 
-		fmt.Printf("\n%v: %s", i, data)
+		pretty, _ := json.MarshalIndent(data, "", "\t")
+
+		fmt.Printf("\n%v: %s", i, pretty)
 	}
 }
