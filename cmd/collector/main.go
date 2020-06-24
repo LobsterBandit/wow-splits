@@ -14,6 +14,8 @@ var logger = log.New(os.Stdout, "", log.Ldate|log.Ltime|log.Lmicroseconds|log.Ls
 func main() {
 	filePaths := aggregator.FindAllSpeedrunSplits("/World of Warcraft")
 
+	characters := make([]*aggregator.Character, 0, 10)
+
 	for i, file := range filePaths {
 		data, err := aggregator.ParseCharacter(file)
 		if err != nil {
@@ -23,7 +25,9 @@ func main() {
 		pretty, _ := json.MarshalIndent(data, "", "\t")
 
 		logger.Printf("%v: %s", i, pretty)
+
+		characters = append(characters, data)
 	}
 
-	stats.DoStats()
+	stats.CalculateStats(characters)
 }

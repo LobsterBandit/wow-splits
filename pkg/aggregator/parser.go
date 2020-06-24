@@ -4,8 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"io/ioutil"
-	"os"
-	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -13,35 +11,26 @@ import (
 	log "github.com/lobsterbandit/wow-splits/pkg/logger"
 )
 
-// var logger = log.New(os.Stdout, "", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile)
-
-const SpeedrunSplitsFile string = "SpeedrunSplits.lua"
-
-func FindAllSpeedrunSplits(wowDir string) (files []string) {
-	log.Logger.Println("WoW dir = ", wowDir)
-
-	err := filepath.Walk(wowDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		// skip global savedvariables fille
-		if info.Name() == SpeedrunSplitsFile &&
-			len(strings.Split(path, string(filepath.Separator))) == 10 {
-			log.Logger.Printf("Found %q at %q", info.Name(), path)
-			files = append(files, path)
-		}
-
-		return nil
-	})
-	if err != nil {
-		log.Logger.Printf("Error walking the path %q: %v", wowDir, err)
-
-		return files
-	}
-
-	return files
+type Level struct {
+	Level         int
+	LevelTime     int
+	AggregateTime int
 }
+
+type Character struct {
+	Account string
+	Server  string
+	Name    string
+	Class   string
+	Times   map[int]*Level
+}
+
+// Global:
+// - SpeedrunSplitsGold
+// - SpeedrunSplitsPB
+// - SpeedrunSplitsOptions, ignore
+// Character:
+// - SpeedrunSplits
 
 func ReadSpeedrunSplits(path string) (data string, err error) {
 	log.Logger.Printf("Reading file at %q", path)
@@ -55,47 +44,26 @@ func ReadSpeedrunSplits(path string) (data string, err error) {
 	return string(content), nil
 }
 
-type Level struct {
-	Level         int
-	LevelTime     int
-	AggregateTime int
-}
-
-type Character struct {
-	Account string
-	Server  string
-	Name    string
-	Class   string
-	Times   []*Level
-}
-
-// Global:
-// - SpeedrunSplitsGold
-// - SpeedrunSplitsPB
-// - SpeedrunSplitsOptions, ignore
-// Character:
-// - SpeedrunSplits
-
-func ParseCharacter(path string) (Character, error) {
+func ParseCharacter(path string) (*Character, error) {
 	character := parseCharacterMetadata(path)
 	if character == nil {
-		return Character{}, fmt.Errorf("ParseCharacter: cannot parse account/server/character from path")
+		return &Character{}, fmt.Errorf("ParseCharacter: cannot parse account/server/character from path")
 	}
 
 	data, err := ReadSpeedrunSplits(path)
 	if err != nil {
 		log.Logger.Printf("\nerror reading %q: %v", path, err)
-		return *character, err
+		return character, err
 	}
 
 	levelRegexp := regexp.MustCompile(`(?is).*SpeedrunSplits = {(.+)}.*`)
 	levelData := levelRegexp.FindStringSubmatch(data)
 
 	if len(levelData) <= 1 {
-		return *character, nil
+		return character, nil
 	}
 
-	return *parseCharacterLevels(character, strings.TrimSpace(levelData[1])), nil
+	return parseCharacterLevels(character, strings.TrimSpace(levelData[1])), nil
 }
 
 func parseCharacterMetadata(path string) *Character {
@@ -107,7 +75,12 @@ func parseCharacterMetadata(path string) *Character {
 		return nil
 	}
 
-	return &Character{Account: matches[1], Server: matches[2], Name: matches[3]}
+	return &Character{
+		Account: matches[1],
+		Server:  matches[2],
+		Name:    matches[3],
+		Times:   make(map[int]*Level),
+	}
 }
 
 func parseCharacterLevels(character *Character, table string) *Character {
@@ -116,7 +89,7 @@ func parseCharacterLevels(character *Character, table string) *Character {
 	scanner := bufio.NewScanner(strings.NewReader(table))
 	for scanner.Scan() {
 		level := parseLevel(scanner.Text(), aggregateTime)
-		character.Times = append(character.Times, level)
+		character.Times[level.Level] = level
 		aggregateTime += level.LevelTime
 	}
 
@@ -133,5 +106,9 @@ func parseLevel(levelText string, aggregateToLevel int) *Level {
 	level, _ := strconv.Atoi(matches[2])
 	time, _ := strconv.Atoi(matches[1])
 
-	return &Level{Level: level, LevelTime: time, AggregateTime: aggregateToLevel + time}
+	return &Level{
+		Level:         level,
+		LevelTime:     time,
+		AggregateTime: aggregateToLevel + time,
+	}
 }
