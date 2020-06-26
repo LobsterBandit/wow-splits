@@ -1,32 +1,32 @@
 package main
 
 import (
-	"encoding/json"
-	"log"
-	"os"
-
+	log "github.com/lobsterbandit/wow-splits/internal/logger"
 	"github.com/lobsterbandit/wow-splits/pkg/aggregator"
 	"github.com/lobsterbandit/wow-splits/pkg/stats"
 )
 
-var logger = log.New(os.Stdout, "", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile)
-
 func main() {
 	filePaths := aggregator.FindAllSpeedrunSplits("/World of Warcraft")
 
-	characters := make([]*aggregator.Character, 0, 10)
+	characters := make([]*aggregator.Character, 0, len(filePaths))
 
-	for i, file := range filePaths {
-		data, err := aggregator.ParseCharacter(file)
-		if err != nil {
-			logger.Printf("Error reading %q: %v", file, err)
+	for _, path := range filePaths {
+		char := aggregator.CreateCharacter(path)
+		if char != nil {
+			characters = append(characters, char)
+		} else {
+			log.Logger.Printf("Error parsing account/server/name from %q", path)
 		}
+	}
 
-		pretty, _ := json.MarshalIndent(data, "", "\t")
+	// log found characters
 
-		logger.Printf("%v: %s", i, pretty)
-
-		characters = append(characters, data)
+	for _, char := range characters {
+		err := char.ParseCharacterData()
+		if err != nil {
+			log.Logger.Printf("Error parsing character %q: %v", char.SavedVariablesPath, err)
+		}
 	}
 
 	stats.CalculateStats(characters)

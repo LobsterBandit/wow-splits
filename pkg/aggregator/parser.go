@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	log "github.com/lobsterbandit/wow-splits/pkg/logger"
+	log "github.com/lobsterbandit/wow-splits/internal/logger"
 )
 
 type Level struct {
@@ -18,55 +18,15 @@ type Level struct {
 }
 
 type Character struct {
-	Account string
-	Server  string
-	Name    string
-	Class   string
-	Times   map[int]*Level
+	Account            string
+	Server             string
+	Name               string
+	Class              string
+	SavedVariablesPath string
+	Times              map[int]*Level
 }
 
-// Global:
-// - SpeedrunSplitsGold
-// - SpeedrunSplitsPB
-// - SpeedrunSplitsOptions, ignore
-// Character:
-// - SpeedrunSplits
-
-func ReadSpeedrunSplits(path string) (data string, err error) {
-	log.Logger.Printf("Reading file at %q", path)
-
-	content, err := ioutil.ReadFile(path)
-	if err != nil {
-		log.Logger.Printf("Error reading %q: %v", path, err)
-		return "", err
-	}
-
-	return string(content), nil
-}
-
-func ParseCharacter(path string) (*Character, error) {
-	character := parseCharacterMetadata(path)
-	if character == nil {
-		return &Character{}, fmt.Errorf("ParseCharacter: cannot parse account/server/character from path")
-	}
-
-	data, err := ReadSpeedrunSplits(path)
-	if err != nil {
-		log.Logger.Printf("\nerror reading %q: %v", path, err)
-		return character, err
-	}
-
-	levelRegexp := regexp.MustCompile(`(?is).*SpeedrunSplits = {(.+)}.*`)
-	levelData := levelRegexp.FindStringSubmatch(data)
-
-	if len(levelData) <= 1 {
-		return character, nil
-	}
-
-	return parseCharacterLevels(character, strings.TrimSpace(levelData[1])), nil
-}
-
-func parseCharacterMetadata(path string) *Character {
+func CreateCharacter(path string) *Character {
 	r := regexp.MustCompile(`_classic_/WTF/Account/(?P<AccountName>\w+)/(?P<ServerName>\w+)/(?P<CharacterName>\w+)`)
 
 	matches := r.FindStringSubmatch(path)
@@ -76,30 +36,49 @@ func parseCharacterMetadata(path string) *Character {
 	}
 
 	return &Character{
-		Account: matches[1],
-		Server:  matches[2],
-		Name:    matches[3],
-		Times:   make(map[int]*Level),
+		Account:            matches[1],
+		Server:             matches[2],
+		Name:               matches[3],
+		SavedVariablesPath: path,
+		Times:              make(map[int]*Level),
 	}
 }
 
-func parseCharacterLevels(character *Character, table string) *Character {
-	var aggregateTime int
+func (c *Character) ParseCharacterData() error {
+	data, err := readSpeedrunSplits(c.SavedVariablesPath)
+	if err != nil {
+		return err
+	}
+
+	levelRegexp := regexp.MustCompile(`(?is).*SpeedrunSplits = {(.+)}.*`)
+	levelData := levelRegexp.FindStringSubmatch(data)
+
+	if len(levelData) <= 1 {
+		return fmt.Errorf("ParseCharacter: no level data to parse")
+	}
+
+	c.ParseLevels(strings.TrimSpace(levelData[1]))
+
+	return nil
+}
+
+func (c *Character) ParseLevels(table string) {
+	var previousLevelTime int
 
 	scanner := bufio.NewScanner(strings.NewReader(table))
 	for scanner.Scan() {
-		level := parseLevel(scanner.Text(), aggregateTime)
-		character.Times[level.Level] = level
-		aggregateTime += level.LevelTime
+		level := parseLevelData(scanner.Text(), previousLevelTime)
+		c.Times[level.Level] = level
+		previousLevelTime = level.AggregateTime
 	}
-
-	return character
 }
 
 // in form:
-// time for level, -- [level]
-// 12345, -- [18].
-func parseLevel(levelText string, aggregateToLevel int) *Level {
+// aggregate time, -- [level]
+// 12345, 		   -- [18].
+func parseLevelData(levelText string, previous int) *Level {
+	log.Logger.Printf("Parsing level text: %s", levelText)
+
 	r := regexp.MustCompile(`\s*([0-9]+), -- \[([0-9]+)\]`)
 	matches := r.FindStringSubmatch(levelText)
 
@@ -108,7 +87,26 @@ func parseLevel(levelText string, aggregateToLevel int) *Level {
 
 	return &Level{
 		Level:         level,
-		LevelTime:     time,
-		AggregateTime: aggregateToLevel + time,
+		LevelTime:     time - previous,
+		AggregateTime: time,
 	}
+}
+
+// Global:
+// - SpeedrunSplitsGold
+// - SpeedrunSplitsPB
+// - SpeedrunSplitsOptions, ignore
+// Character:
+// - SpeedrunSplits
+
+func readSpeedrunSplits(path string) (data string, err error) {
+	log.Logger.Printf("Reading %q", path)
+
+	content, err := ioutil.ReadFile(path)
+	if err != nil {
+		log.Logger.Printf("Error reading %q: %v", path, err)
+		return "", err
+	}
+
+	return string(content), nil
 }
