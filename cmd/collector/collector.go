@@ -1,6 +1,9 @@
 package main
 
 import (
+	"flag"
+	"os"
+
 	log "github.com/lobsterbandit/wow-splits/internal/logger"
 	"github.com/lobsterbandit/wow-splits/pkg/character"
 	"github.com/lobsterbandit/wow-splits/pkg/file"
@@ -8,7 +11,16 @@ import (
 )
 
 func main() {
-	filePaths := file.FindAllFiles("/World of Warcraft")
+	wowDir := flag.String("wowdir", "", "path to \"World of Warcraft\" install `directory`")
+
+	flag.Parse()
+
+	if *wowDir == "" {
+		flag.Usage()
+		os.Exit(1)
+	}
+
+	filePaths := file.FindAllFiles(*wowDir)
 
 	characters := make([]*character.Character, 0, len(filePaths))
 
