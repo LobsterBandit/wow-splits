@@ -14,8 +14,10 @@ import (
 // Character:
 // - SpeedrunSplits
 
-func ReadFile(path string) (data string, err error) {
-	log.Logger.Printf("Reading %q", path)
+func ReadFile(path string, debug bool) (data string, err error) {
+	if debug {
+		log.Logger.Printf("Reading %q", path)
+	}
 
 	content, err := ioutil.ReadFile(path)
 	if err != nil {

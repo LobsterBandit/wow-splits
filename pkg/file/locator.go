@@ -10,7 +10,7 @@ import (
 
 const SpeedrunSplitsFile string = "SpeedrunSplits.lua"
 
-func FindAllFiles(wowDir string) (files []string) {
+func FindAllFiles(wowDir string, debug bool) (files []string) {
 	log.Logger.Printf("Looking for %q in %q", SpeedrunSplitsFile, wowDir)
 
 	err := filepath.Walk(wowDir, func(path string, info os.FileInfo, err error) error {
@@ -21,7 +21,9 @@ func FindAllFiles(wowDir string) (files []string) {
 		// skip global savedvariables fille
 		if info.Name() == SpeedrunSplitsFile &&
 			len(strings.Split(path, string(filepath.Separator))) == 10 {
-			log.Logger.Printf("Found %q", path)
+			if debug {
+				log.Logger.Printf("Found %q", path)
+			}
 			files = append(files, path)
 		}
 

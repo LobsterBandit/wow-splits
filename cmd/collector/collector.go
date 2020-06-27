@@ -7,20 +7,26 @@ import (
 	log "github.com/lobsterbandit/wow-splits/internal/logger"
 	"github.com/lobsterbandit/wow-splits/pkg/character"
 	"github.com/lobsterbandit/wow-splits/pkg/file"
-	"github.com/lobsterbandit/wow-splits/pkg/stats"
 )
 
 func main() {
-	wowDir := flag.String("wowdir", "", "path to \"World of Warcraft\" install `directory`")
+	wowDir := flag.String("wowdir", "", "(Required) path to \"World of Warcraft\" install `directory`")
+	printTree := flag.Bool("tree", false, "print Account/Server/Character tree")
+	printTreeWithTimes := flag.Bool("tree-with-times", false, "print Account/Server/Character tree with per level times")
+	debug := flag.Bool("debug", false, "print debug logs to stdout")
 
 	flag.Parse()
+
+	log.CreateGlobalLogger(*debug)
 
 	if *wowDir == "" {
 		flag.Usage()
 		os.Exit(1)
 	}
 
-	filePaths := file.FindAllFiles(*wowDir)
+	log.Logger.Println("Collecting character leveling times...")
+
+	filePaths := file.FindAllFiles(*wowDir, *debug)
 
 	characters := make([]*character.Character, 0, len(filePaths))
 
@@ -33,14 +39,14 @@ func main() {
 		}
 	}
 
-	// log found characters
-
 	for _, char := range characters {
-		err := char.ParseCharacterData()
+		err := char.ParseCharacterData(*debug)
 		if err != nil {
 			log.Logger.Printf("Error parsing character %q: %v", char.SavedVariablesPath, err)
 		}
 	}
 
-	stats.CalculateStats(characters)
+	if *printTree || *printTreeWithTimes {
+		character.PrintCharacterTree(characters, *printTreeWithTimes)
+	}
 }
