@@ -1,14 +1,14 @@
-package aggregator
+package character
 
 import (
 	"bufio"
 	"fmt"
-	"io/ioutil"
 	"regexp"
 	"strconv"
 	"strings"
 
 	log "github.com/lobsterbandit/wow-splits/internal/logger"
+	"github.com/lobsterbandit/wow-splits/pkg/file"
 )
 
 type Level struct {
@@ -26,10 +26,12 @@ type Character struct {
 	Times              map[int]*Level
 }
 
-func CreateCharacter(path string) *Character {
-	r := regexp.MustCompile(`_classic_/WTF/Account/(?P<AccountName>\w+)/(?P<ServerName>\w+)/(?P<CharacterName>\w+)`)
+var charMetadataRegexp = regexp.MustCompile(`_classic_/WTF/Account/(?P<AccountName>\w+)/(?P<ServerName>\w+)/(?P<CharacterName>\w+)`)
+var levelRegexp = regexp.MustCompile(`(?is).*SpeedrunSplits\s*=\s*{(.+)}.*`)
+var levelDataRegexp = regexp.MustCompile(`\s*([0-9]+),\s*--\s*\[([0-9]+)\]`)
 
-	matches := r.FindStringSubmatch(path)
+func CreateCharacter(path string) *Character {
+	matches := charMetadataRegexp.FindStringSubmatch(path)
 
 	if matches == nil {
 		return nil
@@ -45,12 +47,11 @@ func CreateCharacter(path string) *Character {
 }
 
 func (c *Character) ParseCharacterData() error {
-	data, err := readSpeedrunSplits(c.SavedVariablesPath)
+	data, err := file.ReadFile(c.SavedVariablesPath)
 	if err != nil {
 		return err
 	}
 
-	levelRegexp := regexp.MustCompile(`(?is).*SpeedrunSplits = {(.+)}.*`)
 	levelData := levelRegexp.FindStringSubmatch(data)
 
 	if len(levelData) <= 1 {
@@ -67,7 +68,7 @@ func (c *Character) ParseLevels(table string) {
 
 	scanner := bufio.NewScanner(strings.NewReader(table))
 	for scanner.Scan() {
-		level := parseLevelData(scanner.Text(), previousLevelTime)
+		level := ParseLevelData(scanner.Text(), previousLevelTime)
 		c.Times[level.Level] = level
 		previousLevelTime = level.AggregateTime
 	}
@@ -76,11 +77,10 @@ func (c *Character) ParseLevels(table string) {
 // in form:
 // aggregate time, -- [level]
 // 12345, 		   -- [18].
-func parseLevelData(levelText string, previous int) *Level {
+func ParseLevelData(levelText string, previous int) *Level {
 	log.Logger.Printf("Parsing level text: %s", levelText)
 
-	r := regexp.MustCompile(`\s*([0-9]+), -- \[([0-9]+)\]`)
-	matches := r.FindStringSubmatch(levelText)
+	matches := levelDataRegexp.FindStringSubmatch(levelText)
 
 	level, _ := strconv.Atoi(matches[2])
 	time, _ := strconv.Atoi(matches[1])
@@ -90,23 +90,4 @@ func parseLevelData(levelText string, previous int) *Level {
 		LevelTime:     time - previous,
 		AggregateTime: time,
 	}
-}
-
-// Global:
-// - SpeedrunSplitsGold
-// - SpeedrunSplitsPB
-// - SpeedrunSplitsOptions, ignore
-// Character:
-// - SpeedrunSplits
-
-func readSpeedrunSplits(path string) (data string, err error) {
-	log.Logger.Printf("Reading %q", path)
-
-	content, err := ioutil.ReadFile(path)
-	if err != nil {
-		log.Logger.Printf("Error reading %q: %v", path, err)
-		return "", err
-	}
-
-	return string(content), nil
 }

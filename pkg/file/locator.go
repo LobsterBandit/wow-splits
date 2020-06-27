@@ -1,4 +1,4 @@
-package aggregator
+package file
 
 import (
 	"os"
@@ -10,7 +10,7 @@ import (
 
 const SpeedrunSplitsFile string = "SpeedrunSplits.lua"
 
-func FindAllSpeedrunSplits(wowDir string) (files []string) {
+func FindAllFiles(wowDir string) (files []string) {
 	log.Logger.Printf("Looking for %q in %q", SpeedrunSplitsFile, wowDir)
 
 	err := filepath.Walk(wowDir, func(path string, info os.FileInfo, err error) error {

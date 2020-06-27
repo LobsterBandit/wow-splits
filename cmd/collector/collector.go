@@ -2,17 +2,18 @@ package main
 
 import (
 	log "github.com/lobsterbandit/wow-splits/internal/logger"
-	"github.com/lobsterbandit/wow-splits/pkg/aggregator"
+	"github.com/lobsterbandit/wow-splits/pkg/character"
+	"github.com/lobsterbandit/wow-splits/pkg/file"
 	"github.com/lobsterbandit/wow-splits/pkg/stats"
 )
 
 func main() {
-	filePaths := aggregator.FindAllSpeedrunSplits("/World of Warcraft")
+	filePaths := file.FindAllFiles("/World of Warcraft")
 
-	characters := make([]*aggregator.Character, 0, len(filePaths))
+	characters := make([]*character.Character, 0, len(filePaths))
 
 	for _, path := range filePaths {
-		char := aggregator.CreateCharacter(path)
+		char := character.CreateCharacter(path)
 		if char != nil {
 			characters = append(characters, char)
 		} else {
