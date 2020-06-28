@@ -1,39 +1,56 @@
 package file
 
 import (
+	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 
 	log "github.com/lobsterbandit/wow-splits/internal/logger"
 )
 
+type CharacterPath struct {
+	Server    string
+	Character string
+}
+
 const SpeedrunSplitsFile string = "SpeedrunSplits.lua"
 
-func FindAllFiles(wowDir string, debug bool) (files []string) {
-	log.Logger.Printf("Looking for %q in %q", SpeedrunSplitsFile, wowDir)
+func FindAllAccountPaths(wowDir string, debug bool) (accountDirs []string, err error) {
+	accountPath := filepath.Join(wowDir, "/_classic_/WTF/Account")
 
-	err := filepath.Walk(wowDir, func(path string, info os.FileInfo, err error) error {
+	log.Logger.Printf("Searching for accounts in %q", accountPath)
+
+	files, err := ioutil.ReadDir(accountPath)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, file := range files {
+		if file.IsDir() {
+			accountDirs = append(accountDirs, filepath.Join(accountPath, file.Name()))
+
+			if debug {
+				log.Logger.Printf("Found account %q", file.Name())
+			}
+		}
+	}
+
+	return
+}
+
+func FindAllDataPaths(path string, debug bool) (dataPaths []string, err error) {
+	err = filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 
-		// skip global savedvariables fille
-		if info.Name() == SpeedrunSplitsFile &&
-			len(strings.Split(path, string(filepath.Separator))) == 10 {
-			if debug {
-				log.Logger.Printf("Found %q", path)
-			}
-			files = append(files, path)
+		if info.Name() == SpeedrunSplitsFile {
+			dataPaths = append(dataPaths, path)
+			log.Logger.Printf("Found data at %q", path)
 		}
 
 		return nil
 	})
-	if err != nil {
-		log.Logger.Printf("Error walking the path %q: %v", wowDir, err)
 
-		return files
-	}
-
-	return files
+	return
 }

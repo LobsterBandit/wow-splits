@@ -1,4 +1,4 @@
-package character
+package account
 
 import (
 	"fmt"
@@ -23,12 +23,12 @@ func (c *Character) ParseCharacterData(debug bool) error {
 		return fmt.Errorf("ParseCharacter: no level data to parse")
 	}
 
-	c.ParseLevelMatches(levelData)
+	c.parseLevelMatches(levelData)
 
 	return nil
 }
 
-func (c *Character) ParseLevelMatches(levels [][]string) {
+func (c *Character) parseLevelMatches(levels [][]string) {
 	var previousLevelTime int
 
 	for _, match := range levels {

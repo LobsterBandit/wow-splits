@@ -5,8 +5,7 @@ import (
 	"os"
 
 	log "github.com/lobsterbandit/wow-splits/internal/logger"
-	"github.com/lobsterbandit/wow-splits/pkg/character"
-	"github.com/lobsterbandit/wow-splits/pkg/file"
+	"github.com/lobsterbandit/wow-splits/pkg/account"
 )
 
 func main() {
@@ -26,27 +25,20 @@ func main() {
 
 	log.Logger.Println("Collecting character leveling times...")
 
-	filePaths := file.FindAllFiles(*wowDir, *debug)
-
-	characters := make([]*character.Character, 0, len(filePaths))
-
-	for _, path := range filePaths {
-		char := character.CreateCharacter(path)
-		if char != nil {
-			characters = append(characters, char)
-		} else {
-			log.Logger.Printf("Error parsing account/server/name from %q", path)
-		}
+	accounts, err := account.CreateAllAccounts(*wowDir, *debug)
+	if err != nil {
+		log.Logger.Printf("Error finding accounts in %q: %v", *wowDir, err)
 	}
 
-	for _, char := range characters {
-		err := char.ParseCharacterData(*debug)
+	for _, account := range accounts {
+		err := account.PopulateAccountData(*debug)
+
 		if err != nil {
-			log.Logger.Printf("Error parsing character %q: %v", char.SavedVariablesPath, err)
+			log.Logger.Printf("Error populating account data: %v", err)
 		}
 	}
 
 	if *printTree || *printTreeWithTimes {
-		character.PrintCharacterTree(characters, *printTreeWithTimes)
+		account.PrintAccountTree(accounts, *printTreeWithTimes)
 	}
 }
