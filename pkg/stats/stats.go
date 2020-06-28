@@ -2,10 +2,10 @@ package stats
 
 import (
 	log "github.com/lobsterbandit/wow-splits/internal/logger"
-	"github.com/lobsterbandit/wow-splits/pkg/character"
+	"github.com/lobsterbandit/wow-splits/pkg/account"
 )
 
-func CalculateStats(characters []*character.Character) {
+func CalculateStats(characters []*account.Character) {
 	for _, char := range characters {
 		log.Logger.Printf("Stats for %q", char.Name)
 		log.Logger.Printf("Max level attained = %v", len(char.Times))
