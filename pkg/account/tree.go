@@ -8,27 +8,24 @@ import (
 )
 
 // print discovered account/server/character structure in tree format
-func PrintAccountTree(accounts []*Account, includeTimes bool) {
+func (w *WowInstall) PrintAccountTree(includeTimes bool) {
 	log.Logger.Println("##########################################################")
 
-	var serverTotal, characterTotal int
-	for _, account := range accounts {
-		serverTotal += account.ServerCount
-		characterTotal += account.CharacterCount
-	}
+	totals := w.CalculateTotals()
 
-	log.Logger.Printf("%d Account(s), %d Server(s) and %d Character(s) found:",
-		len(accounts), serverTotal, characterTotal)
+	log.Logger.Printf("%d Account(s), %d Server(s) and %d Character(s):",
+		totals.Accounts, totals.Servers, totals.Characters)
 
-	for iAccount, account := range accounts {
-		accountSep := determineTreeSeparator(iAccount == len(accounts)-1)
+	for iAccount, account := range w.Accounts {
+		isLastAccount := iAccount == totals.Accounts-1
+		accountSep := determineTreeSeparator(isLastAccount)
 		log.Logger.Printf("%s-- %-15s", accountSep, account.Name)
 
 		iServer := 1
 		for serverName, characters := range account.Servers {
 			serverSep := determineTreeSeparator(iServer == len(account.Servers))
 
-			if iAccount == len(accounts)-1 {
+			if isLastAccount {
 				accountSep = " "
 			}
 

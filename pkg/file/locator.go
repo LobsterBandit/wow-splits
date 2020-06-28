@@ -18,7 +18,7 @@ const SpeedrunSplitsFile string = "SpeedrunSplits.lua"
 func FindAllAccountPaths(wowDir string, debug bool) (accountDirs []string, err error) {
 	accountPath := filepath.Join(wowDir, "/_classic_/WTF/Account")
 
-	log.Logger.Printf("Searching for accounts in %q", accountPath)
+	log.Logger.Printf("Searching for accounts in %q...", accountPath)
 
 	files, err := ioutil.ReadDir(accountPath)
 	if err != nil {
@@ -46,7 +46,9 @@ func FindAllDataPaths(path string, debug bool) (dataPaths []string, err error) {
 
 		if info.Name() == SpeedrunSplitsFile {
 			dataPaths = append(dataPaths, path)
-			log.Logger.Printf("Found data at %q", path)
+			if debug {
+				log.Logger.Printf("Found data at %q", path)
+			}
 		}
 
 		return nil

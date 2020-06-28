@@ -6,6 +6,11 @@ import (
 	"github.com/lobsterbandit/wow-splits/pkg/file"
 )
 
+type WowInstall struct {
+	RootDir  string
+	Accounts []*Account
+}
+
 type Account struct {
 	Name               string
 	Path               string
@@ -16,10 +21,10 @@ type Account struct {
 	CharacterCount     int
 }
 
-func CreateAllAccounts(wowDir string, debug bool) (accounts []*Account, err error) {
-	accountDirs, err := file.FindAllAccountPaths(wowDir, debug)
+func (w *WowInstall) CreateAllAccounts(debug bool) (err error) {
+	accountDirs, err := file.FindAllAccountPaths(w.RootDir, debug)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	for _, dir := range accountDirs {
@@ -30,10 +35,10 @@ func CreateAllAccounts(wowDir string, debug bool) (accounts []*Account, err erro
 			Servers:            make(map[string][]*Character),
 		}
 
-		accounts = append(accounts, account)
+		w.Accounts = append(w.Accounts, account)
 	}
 
-	return
+	return nil
 }
 
 func (a *Account) PopulateAccountData(debug bool) error {
